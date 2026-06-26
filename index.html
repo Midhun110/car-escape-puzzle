@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Car Escape Puzzle</title>
+  <!-- Google Fonts for premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Diagnostic error reporter script -->
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      const errDiv = document.createElement("div");
+      errDiv.style.position = "fixed";
+      errDiv.style.top = "0";
+      errDiv.style.left = "0";
+      errDiv.style.right = "0";
+      errDiv.style.background = "#ff0844";
+      errDiv.style.color = "white";
+      errDiv.style.padding = "14px";
+      errDiv.style.zIndex = "999999";
+      errDiv.style.fontSize = "12px";
+      errDiv.style.fontFamily = "monospace";
+      errDiv.style.whiteSpace = "pre-wrap";
+      errDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5)";
+      errDiv.innerText = "Error: " + message + "\nSource: " + source + ":" + lineno + ":" + colno;
+      document.body.appendChild(errDiv);
+      return false;
+    };
+    window.addEventListener("unhandledrejection", function(event) {
+      const errDiv = document.createElement("div");
+      errDiv.style.position = "fixed";
+      errDiv.style.top = "0";
+      errDiv.style.left = "0";
+      errDiv.style.right = "0";
+      errDiv.style.background = "#ff0844";
+      errDiv.style.color = "white";
+      errDiv.style.padding = "14px";
+      errDiv.style.zIndex = "999999";
+      errDiv.style.fontSize = "12px";
+      errDiv.style.fontFamily = "monospace";
+      errDiv.style.whiteSpace = "pre-wrap";
+      errDiv.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5)";
+      errDiv.innerText = "Unhandled Promise Rejection: " + event.reason;
+      document.body.appendChild(errDiv);
+    });
+  </script>
+</head>
+<body>
+  <!-- Canvas for weather effects (rain, snow) and floating lights particles -->
+  <canvas id="effects-canvas"></canvas>
+
+  <div id="app-container">
+    <!-- TOP BAR (Global Header for Screens) -->
+    <header class="global-header" id="game-global-header">
+      <div class="player-profile" id="btn-profile">
+        <div class="avatar-glow">
+          <div class="avatar">🏎️</div>
+        </div>
+        <div class="profile-info">
+          <span class="player-name" id="hud-player-name">Racer Pro</span>
+          <span class="player-rank" id="hud-player-rank">Rank: Rookie</span>
+        </div>
+      </div>
+      <div class="coin-display" id="header-coins">
+        <svg viewBox="0 0 24 24" class="icon-coin"><circle cx="12" cy="12" r="10" fill="url(#coinGrad)"/><circle cx="12" cy="12" r="7" fill="none" stroke="#fff" stroke-width="1.5"/><text x="12" y="16" font-size="12" font-weight="900" fill="#fff" text-anchor="middle">C</text><defs><linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFD700"/><stop offset="100%" stop-color="#FFA500"/></linearGradient></defs></svg>
+        <span id="coin-count">500</span>
+      </div>
+    </header>
+
+    <!-- SCREEN 0: WELCOME SCREEN (First Run Name Entry) -->
+    <section id="screen-welcome" class="screen">
+      <div class="logo-container">
+        <h1 class="game-title">CAR ESCAPE</h1>
+        <p class="game-subtitle">PARKING JAM EDITION</p>
+      </div>
+      <div class="welcome-box glassmorphism">
+        <h2>DRIVER REGISTRATION</h2>
+        <div class="story-dialogue" id="welcome-story-dialogue" style="font-size: 11px; line-height: 1.4; color: var(--accent-neon); margin-bottom: 12px; font-weight: 600; text-align: left; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+          <strong>Chief Dispatcher:</strong> "Kid, the city is in a massive parking crisis! Traffic is backed up, horns are blaring. We need you, our traffic specialist, to free the gridlock! Enter your name to report for duty."
+        </div>
+        <p class="subtitle">Enter your racer name to start the engine</p>
+        <div class="input-glow-wrapper">
+          <input type="text" id="input-player-name" placeholder="Racer Name..." maxlength="12">
+        </div>
+        <button class="btn btn-primary" id="btn-save-name">
+          <span class="btn-text">START ENGINE ➜</span>
+          <span class="btn-glowing-effect"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 1: SPLASH / MAIN MENU -->
+    <section id="screen-splash" class="screen active">
+      <div class="logo-container">
+        <h1 class="game-title">CAR ESCAPE</h1>
+        <p class="game-subtitle">PARKING JAM EDITION</p>
+        <p class="welcome-banner" id="splash-welcome-banner">Welcome, <span id="splash-player-name">Racer</span>!</p>
+      </div>
+
+      <!-- DIFFICULTY SELECTION CAROUSEL -->
+      <div class="difficulty-carousel-container">
+        <button class="carousel-nav" id="btn-prev-diff">◀</button>
+        <div class="difficulty-carousel-viewport">
+          <div class="difficulty-carousel-track" id="difficulty-track">
+            <!-- Dynamic Cards generated in JS (Easy, Medium, Hard, Expert, Impossible) -->
+          </div>
+        </div>
+        <button class="carousel-nav" id="btn-next-diff">▶</button>
+      </div>
+
+      <!-- Animated 3D Platform Showcase -->
+      <div class="hero-car-showcase">
+        <div class="showcase-platform">
+          <div class="platform-light"></div>
+          <div class="showcase-car" id="showcase-car-model">
+            <!-- Dynamically populated main car SVG with neon underglow -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Action Actions -->
+      <div class="menu-actions">
+        <button class="btn btn-primary btn-play animate-pulse" id="btn-play-game">
+          <span class="btn-text">PLAY LEVEL</span>
+          <span class="btn-glowing-effect"></span>
+        </button>
+
+        <div class="menu-grid-buttons">
+          <button class="btn btn-secondary" id="btn-open-garage" data-tooltip="Garage">
+            <span class="btn-icon">🚗</span>
+            <span class="btn-label">Garage</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-open-shop" data-tooltip="Shop">
+            <span class="btn-icon">🛍️</span>
+            <span class="btn-label">Shop</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-open-leaderboard" data-tooltip="Leaderboard">
+            <span class="btn-icon">🏆</span>
+            <span class="btn-label">Ranks</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-open-settings" data-tooltip="Settings">
+            <span class="btn-icon">⚙️</span>
+            <span class="btn-label">Settings</span>
+          </button>
+        </div>
+
+        <div class="footer-actions" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
+          <button class="btn btn-glass" id="btn-open-levels" style="flex: 1;">
+            🗺️ Select Stage
+          </button>
+          <button class="btn btn-glass" id="btn-daily-reward" style="flex: 1;">
+            <span class="gift-anim">🎁</span> Daily Reward
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 1B: LOADING SCREEN -->
+    <section id="screen-loading" class="screen">
+      <div class="loading-content">
+        <div class="loading-spinner-box">
+          <div class="spinner-neon"></div>
+        </div>
+        <h2 class="loading-title">PREPARING PARKING LOT...</h2>
+        <div class="loading-bar-wrapper">
+          <div class="loading-sports-car" id="loading-car-sprite">🏎️💨</div>
+          <div class="loading-bar-container">
+            <div class="loading-bar-fill" id="loading-bar-fill"></div>
+          </div>
+        </div>
+        <p class="loading-tip" id="loading-tip-text">Tip: Watch for vertical blockers holding back traffic!</p>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: GAMEPLAY SCREEN -->
+    <section id="screen-gameplay" class="screen">
+      <!-- HUD / Level Information -->
+      <div class="game-hud">
+        <div class="hud-left">
+          <button class="btn btn-icon-only" id="btn-game-back">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="hud-level-info">
+            <h2 id="hud-level-title">Level 1</h2>
+            <span id="hud-level-difficulty" class="badge easy">Easy</span>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="move-counter-box">
+            <span class="label">MOVES</span>
+            <span id="hud-move-count" class="value">0</span>
+            <span class="target-moves" id="hud-target-moves">/ Target: 10</span>
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <button class="btn btn-icon-only" id="btn-game-pause" data-tooltip="Pause">
+            <span style="font-size: 16px;">⏸️</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Level Progress Bar & Stars -->
+      <div class="level-progress-wrapper">
+        <div class="progress-bar-container">
+          <div id="game-progress-bar" class="progress-fill" style="width: 100%;"></div>
+        </div>
+        <div class="stars-hud-container">
+          <span class="star-hud active" id="star-hud-1">⭐</span>
+          <span class="star-hud active" id="star-hud-2">⭐</span>
+          <span class="star-hud active" id="star-hud-3">⭐</span>
+        </div>
+      </div>
+
+      <!-- THE GAME BOARD CONTAINER -->
+      <div class="board-frame">
+        <div class="board-environment">
+          <!-- Parking accessories (streetlamps, trees) -->
+          <div class="streetlamp-left lamp-pole"><div class="lamp-glow"></div></div>
+          <div class="streetlamp-right lamp-pole"><div class="lamp-glow"></div></div>
+          <div class="parking-sign">P</div>
+          <div class="tree tree-1">🌲</div>
+          <div class="tree tree-2">🌲</div>
+          <div class="tree tree-3">🌲</div>
+          <div class="cloud cloud-1"></div>
+          <div class="cloud cloud-2"></div>
+        </div>
+
+        <div id="game-board" class="game-board">
+          <!-- Background grids, lane markings, oil stains dynamically drawn -->
+          <div class="grid-markings">
+            <!-- 6x6 tiles -->
+            <div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div>
+            <div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div>
+            <div class="grid-tile font-exit-row"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div>
+            <div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div>
+            <div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div>
+            <div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div><div class="grid-tile"></div>
+          </div>
+          <div class="oil-spills">
+            <div class="oil-stain stain-1"></div>
+            <div class="oil-stain stain-2"></div>
+          </div>
+          <div class="parking-arrows">
+            <div class="road-arrow">➜</div>
+          </div>
+
+          <!-- CARS CONTAINER -->
+          <div id="vehicles-layer" class="vehicles-layer">
+            <!-- Vehicles dynamically generated here -->
+          </div>
+        </div>
+
+        <!-- Exit gate structure -->
+        <div class="exit-gate-anchor">
+          <div class="exit-arrow-indicator">EXIT ➜</div>
+          <div class="gate-post"></div>
+          <div class="gate-barrier" id="gate-barrier-arm"></div>
+        </div>
+      </div>
+
+      <!-- Controls Overlay Footer -->
+      <div class="gameplay-controls">
+        <button class="btn btn-circle" id="btn-undo" data-tooltip="Undo">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+          <span class="control-label">Undo</span>
+        </button>
+        <button class="btn btn-circle" id="btn-redo" data-tooltip="Redo">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/></svg>
+          <span class="control-label">Redo</span>
+        </button>
+        <button class="btn btn-circle" id="btn-restart" data-tooltip="Restart">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/></svg>
+          <span class="control-label">Restart</span>
+        </button>
+        <button class="btn btn-circle btn-hint" id="btn-hint" data-tooltip="Hint">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5.5 5.5 0 007.5 8c0 1.3.5 2.6 1.5 3.5.7.8 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/></svg>
+          <span class="control-label">Hint</span>
+          <span class="hint-count-badge" id="hint-count">Free</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- MODAL 1: GARAGE (CAR CUSTOMIZATION) -->
+    <div id="modal-garage" class="modal-overlay">
+      <div class="modal-content glassmorphism">
+        <header class="modal-header">
+          <h2>THE GARAGE</h2>
+          <button class="btn-close-modal" id="btn-close-garage">✕</button>
+        </header>
+
+        <div class="garage-container">
+          <div class="garage-preview-box">
+            <div class="underglow-preview" id="garage-preview-underglow"></div>
+            <div class="car-preview-display" id="garage-car-preview">
+              <!-- Render selected car SVG dynamically -->
+            </div>
+            <div class="preview-stats">
+              <h3 id="preview-car-name">Player Sports Car</h3>
+              <span id="preview-car-class" class="badge">S Class</span>
+            </div>
+          </div>
+
+          <div class="garage-customizer-tabs">
+            <button class="tab-btn active" data-tab="tab-cars">Vehicles</button>
+            <button class="tab-btn" data-tab="tab-paints">Paint Job</button>
+            <button class="tab-btn" data-tab="tab-underglow">Underglow</button>
+          </div>
+
+          <!-- Tab Content: Car Selection -->
+          <div class="tab-content active" id="tab-cars">
+            <div class="customizer-grid" id="garage-car-list">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <!-- Tab Content: Paints -->
+          <div class="tab-content" id="tab-paints">
+            <div class="color-palette-grid" id="garage-paint-list">
+              <!-- Paints -->
+            </div>
+          </div>
+
+          <!-- Tab Content: Underglows -->
+          <div class="tab-content" id="tab-underglow">
+            <div class="glow-palette-grid" id="garage-underglow-list">
+              <!-- Glow colors -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: SHOP / ITEMS -->
+    <div id="modal-shop" class="modal-overlay">
+      <div class="modal-content glassmorphism">
+        <header class="modal-header">
+          <h2>THE BOUTIQUE SHOP</h2>
+          <button class="btn-close-modal" id="btn-close-shop">✕</button>
+        </header>
+        <div class="shop-content">
+          <div class="shop-section">
+            <h3>Special Packs</h3>
+            <div class="shop-item-card premium">
+              <span class="shop-badge">BEST VALUE</span>
+              <div class="shop-item-icon">💎</div>
+              <div class="shop-item-details">
+                <h4>Neon Escape Pack</h4>
+                <p>Unlock custom sports car + 2,000 Coins!</p>
+              </div>
+              <button class="btn btn-action buy-item" data-price="9.99" data-type="iap">Buy $9.99</button>
+            </div>
+          </div>
+
+          <div class="shop-section">
+            <h3>Coin Bundles</h3>
+            <div class="shop-grid">
+              <div class="shop-item-card">
+                <div class="shop-item-icon">🪙</div>
+                <div class="shop-item-details">
+                  <h4>Coin Bag</h4>
+                  <p>1,000 Gold Coins</p>
+                </div>
+                <button class="btn btn-action buy-coins" data-price="0" data-coins="1000">Watch Ad</button>
+              </div>
+              <div class="shop-item-card">
+                <div class="shop-item-icon">💰</div>
+                <div class="shop-item-details">
+                  <h4>Coin Safe</h4>
+                  <p>5,000 Gold Coins</p>
+                </div>
+                <button class="btn btn-action buy-coins" data-price="1.99" data-coins="5000">Buy $1.99</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="shop-section">
+            <h3>Unlock Themes</h3>
+            <div class="theme-select-list" id="shop-themes-list">
+              <!-- Themes list -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: LEADERBOARD -->
+    <div id="modal-leaderboard" class="modal-overlay">
+      <div class="modal-content glassmorphism">
+        <header class="modal-header">
+          <h2>LEADERBOARDS</h2>
+          <button class="btn-close-modal" id="btn-close-leaderboard">✕</button>
+        </header>
+        <div class="garage-customizer-tabs" style="margin: 10px 20px 0 20px;">
+          <button class="tab-btn active" id="tab-btn-ranks" data-tab="ranks">Ranks</button>
+          <button class="tab-btn" id="tab-btn-achievements" data-tab="achievements">Achievements</button>
+        </div>
+        <div class="leaderboard-container" id="leaderboard-ranks-view">
+          <div class="leaderboard-podium">
+            <div class="podium-rank rank-2">
+              <div class="avatar">🏎️</div>
+              <span class="name">ApexDrifter</span>
+              <span class="score">Level 142</span>
+              <div class="podium-block silver">2</div>
+            </div>
+            <div class="podium-rank rank-1">
+              <div class="avatar">👑</div>
+              <span class="name">SpeedDemon</span>
+              <span class="score">Level 256</span>
+              <div class="podium-block gold">1</div>
+            </div>
+            <div class="podium-rank rank-3">
+              <div class="avatar">🚓</div>
+              <span class="name">NeonSkid</span>
+              <span class="score">Level 98</span>
+              <div class="podium-block bronze">3</div>
+            </div>
+          </div>
+
+          <div class="leaderboard-list" id="ranks-list">
+            <!-- Dynamically populated top players lists -->
+          </div>
+        </div>
+        <div class="leaderboard-container" id="leaderboard-achievements-view" style="display: none; padding-top: 10px;">
+          <div class="leaderboard-list" id="achievements-list" style="max-height: 280px;">
+            <!-- Dynamically populated achievements lists -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: PAUSE GAME -->
+    <div id="modal-pause" class="modal-overlay">
+      <div class="modal-content glassmorphism small-modal">
+        <header class="modal-header">
+          <h2>GAME PAUSED</h2>
+          <button class="btn-close-modal" id="btn-close-pause">✕</button>
+        </header>
+        <div class="settings-content" style="gap: 16px; align-items: center; padding: 24px;">
+          <button class="btn btn-primary" id="btn-pause-resume" style="width: 100%;">RESUME ESCAPE</button>
+          <button class="btn btn-secondary" id="btn-pause-restart" style="width: 100%; height: 48px; font-size: 14px;">RESTART LEVEL</button>
+          <button class="btn btn-secondary" id="btn-pause-settings" style="width: 100%; height: 48px; font-size: 14px;">SETTINGS</button>
+          <button class="btn btn-secondary" id="btn-pause-quit" style="width: 100%; height: 48px; font-size: 14px; background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #ef4444;">QUIT TO MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: SETTINGS -->
+    <div id="modal-settings" class="modal-overlay">
+      <div class="modal-content glassmorphism small-modal">
+        <header class="modal-header">
+          <h2>SETTINGS</h2>
+          <button class="btn-close-modal" id="btn-close-settings">✕</button>
+        </header>
+        <div class="settings-content">
+          <!-- Profile Name Editing -->
+          <div class="setting-row name-edit-row">
+            <span>Racer Profile</span>
+            <input type="text" id="setting-player-name" class="select-premium text-input-glow" placeholder="Racer Name..." maxlength="12">
+          </div>
+          <!-- Music Volume Slider -->
+          <div class="setting-row-vertical">
+            <div class="label-box">
+              <span>Music Level</span>
+              <span id="label-music-val">50%</span>
+            </div>
+            <input type="range" id="slider-music" min="0" max="100" value="50" class="slider-range-premium">
+          </div>
+          <!-- SFX Volume Slider -->
+          <div class="setting-row-vertical">
+            <div class="label-box">
+              <span>Sound Effects</span>
+              <span id="label-sfx-val">60%</span>
+            </div>
+            <input type="range" id="slider-sfx" min="0" max="100" value="60" class="slider-range-premium">
+          </div>
+          <!-- Haptic feedback toggle -->
+          <div class="setting-row">
+            <span>Vibration / Haptic</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-vibration" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+          <!-- Theme -->
+          <div class="setting-row">
+            <span>Visual Theme</span>
+            <select id="select-weather-theme" class="select-premium">
+              <option value="day">Daylight Lot</option>
+              <option value="night">Cyber Neon Night</option>
+              <option value="rain">Cyber Rain</option>
+              <option value="snow">Neon Blizzard</option>
+            </select>
+          </div>
+          <!-- Accessibility Section Title -->
+          <div class="setting-row" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 4px; color: var(--accent-neon); font-size: 11px;">
+            <span>ACCESSIBILITY OPTIONS</span>
+          </div>
+          <!-- Colorblind filters -->
+          <div class="setting-row">
+            <span>Colorblind Palette</span>
+            <select id="select-colorblind" class="select-premium">
+              <option value="none">Disabled</option>
+              <option value="deuteranopia">Deuteranopia</option>
+              <option value="protanopia">Protanopia</option>
+              <option value="tritanopia">Tritanopia</option>
+            </select>
+          </div>
+          <!-- Reduce Motion -->
+          <div class="setting-row">
+            <span>Reduce Motion</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-reduce-motion">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+          <!-- Left-handed Mode -->
+          <div class="setting-row">
+            <span>Left-Handed HUD</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-left-handed">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+          <!-- UI Scaling -->
+          <div class="setting-row">
+            <span>UI Scaling</span>
+            <select id="select-ui-scaling" class="select-premium">
+              <option value="standard">Standard</option>
+              <option value="large">Large (1.1x)</option>
+            </select>
+          </div>
+          <div class="settings-footer-buttons" style="margin-top: 8px;">
+            <button class="btn btn-action" id="btn-reset-game-data">Reset Progress</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 5: DAILY REWARD -->
+    <div id="modal-daily" class="modal-overlay">
+      <div class="modal-content glassmorphism daily-reward-modal" style="max-height: 92%;">
+        <header class="modal-header" style="border: none; padding-bottom: 0;">
+          <h2 style="font-size: 20px; width: 100%; text-align: center;">BONUS CENTER</h2>
+        </header>
+        <div class="garage-customizer-tabs" style="margin: 6px 16px 12px 16px;">
+          <button class="tab-btn active" id="tab-btn-daily-rewards" data-tab="daily-rewards">Daily Gift</button>
+          <button class="tab-btn" id="tab-btn-daily-challenges" data-tab="daily-challenges">Challenges</button>
+        </div>
+        
+        <div id="daily-rewards-tab-view" style="display: flex; flex-direction: column; gap: 12px;">
+          <p class="subtitle" style="margin-top: -6px;">Check in daily to claim premium gold and keys!</p>
+          <div class="daily-reward-grid" id="daily-days-grid" style="margin-top: 0;">
+            <!-- Populated in JS -->
+          </div>
+          <button class="btn btn-primary" id="btn-claim-daily" style="margin-top: 8px;">CLAIM BONUS</button>
+        </div>
+
+        <div id="daily-challenges-tab-view" style="display: none; flex-direction: column; gap: 10px; padding: 0 10px 10px 10px; max-height: 320px; overflow-y: auto; text-align: left;">
+          <p class="subtitle" style="text-align: center; margin-top: -10px; margin-bottom: 6px;">Solve challenges to gain bonus coins!</p>
+          <div class="leaderboard-list" id="challenges-list">
+            <!-- Dynamically populated challenges list -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 6: VICTORY CELEBRATION -->
+    <div id="modal-victory" class="modal-overlay victory-overlay">
+      <div class="victory-card glassmorphism" style="gap: 12px; padding: 24px 20px;">
+        <div class="confetti-spawner" id="victory-confetti"></div>
+        <h2 class="victory-headline animate-pop" id="victory-headline-text">LEVEL COMPLETE!</h2>
+        
+        <div class="victory-stars" id="victory-stars-box">
+          <span>⭐</span><span>⭐</span><span>⭐</span>
+        </div>
+
+        <div class="perfect-badge-container" id="victory-perfect-badge" style="opacity: 0; transform: scale(0.5); margin: -4px 0;">
+          <span class="badge" style="background: linear-gradient(135deg, #ffd700, #ffa500); color: black; font-weight: 900; font-size: 11px; padding: 3px 12px; border: 1px solid white; box-shadow: 0 0 10px rgba(255, 215, 0, 0.7); display: inline-block;">PERFECT ESCAPE!</span>
+        </div>
+
+        <div class="victory-stats-summary">
+          <div class="stat-item">
+            <span class="label">Moves</span>
+            <span class="value" id="victory-moves">12</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Best Score</span>
+            <span class="value" id="victory-best">8</span>
+          </div>
+          <div class="stat-item highlight">
+            <span class="label">Earned</span>
+            <span class="value" id="victory-coins">+50 Coins</span>
+          </div>
+        </div>
+
+        <!-- Rank XP bar progression -->
+        <div class="victory-xp-box" style="width: 100%; margin: 4px 0;">
+          <div class="xp-label-row" style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; font-weight: 700; color: var(--text-muted);">
+            <span>Racer Rank XP</span>
+            <span id="victory-xp-text">+100 XP</span>
+          </div>
+          <div class="progress-bar-container" style="width: 100%; height: 8px;">
+            <div id="victory-xp-fill" class="progress-fill" style="width: 0%; height: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Next stage mini grid preview -->
+        <div class="next-level-preview-box" style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.04); padding: 8px; border-radius: 12px;">
+          <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Next Stage Preview</span>
+          <div class="mini-board-preview" id="victory-next-preview" style="width: 54px; height: 54px; gap: 1px; padding: 2px;"></div>
+        </div>
+
+        <div class="victory-actions" style="margin-top: 4px;">
+          <button class="btn btn-secondary" id="btn-victory-double" style="height: 40px; font-size: 11px;">
+            <span>🎥 Double Coins (+50)</span>
+          </button>
+          <button class="btn btn-primary btn-play animate-pulse" id="btn-victory-next" style="height: 48px; font-size: 14px;">
+            <span>NEXT STAGE ➜</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: LEVEL SELECTION -->
+    <div id="modal-levels" class="modal-overlay">
+      <div class="modal-content glassmorphism" style="max-height: 85%; width: 90%; max-width: 480px; padding: 24px 20px; gap: 14px;">
+        <header class="modal-header" style="border: none; padding-bottom: 0;">
+          <h2>STAGE SELECT</h2>
+          <button class="btn-close-modal" id="btn-close-levels">✕</button>
+        </header>
+        
+        <div class="worlds-tabs-container" id="levels-world-tabs" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 6px; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.06); scrollbar-width: none;">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="levels-grid-container" id="levels-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-height: 320px; overflow-y: auto; padding: 6px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: LEVEL LOCKED POPUP -->
+    <div id="modal-locked-popup" class="modal-overlay locked-popup-overlay">
+      <div class="modal-content glassmorphism locked-popup-content" style="padding: 28px 24px; text-align: center; gap: 18px; max-width: 320px; border: 1.5px solid rgba(239, 68, 68, 0.35); box-shadow: 0 0 25px rgba(239, 68, 68, 0.25);">
+        <div class="lock-graphic-container" style="font-size: 42px; line-height: 1; margin-bottom: -4px;">🔒</div>
+        <h3 style="font-size: 19px; font-weight: 900; color: #ef4444; letter-spacing: 0.5px; margin: 0;">Level Locked</h3>
+        <p style="font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,0.7); margin: 0;" id="locked-popup-message">
+          You must complete all previous levels before unlocking this one.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+          <button class="btn btn-primary" id="btn-locked-go-next" style="width: 100%; height: 44px; font-size: 12px; font-weight: 800;">GO TO NEXT AVAILABLE</button>
+          <button class="btn btn-secondary" id="btn-locked-ok" style="width: 100%; height: 40px; font-size: 12px;">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-container" style="position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); z-index: 9999999; pointer-events: none; display: flex; flex-direction: column; gap: 8px;"></div>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
